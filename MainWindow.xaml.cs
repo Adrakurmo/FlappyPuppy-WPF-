@@ -20,15 +20,24 @@ namespace FlappyPuppy
     public partial class MainWindow : Window
     {
         Brush airColor = Brushes.AliceBlue;
-        int circleY = 50;
-        int circleX = 15;
-        int r = 4;
+
         bool GameStarted = false;
         bool isJumping = false;
+        // ----- amount of % mini-grids [10k / 10k too many D:]--------------
         int width = 100;
         int height = 100;
+        // ----- amout of ms before every refresh loop activation ----------- 
+        int refreshTime = 15;
+        // ----- player Starting cor ---------------------------------------- 
+        int circleY;
+        int circleX = 15;
+        int r = 4;
+        List<Tuple<int, int>> currentPosition = new List<Tuple<int, int>>();
+        // ----- first tower Starting cor ----------------------------------- 
+        Tuple<int, int> stTowerTopLeft;
+        Tuple<int, int> stTowerBottomRight;
 
-        List<Tuple<int,int>> currentPosition = new List<Tuple<int,int>>();
+
         public MainWindow()
         {
             // player strat p (15,50)
@@ -36,9 +45,18 @@ namespace FlappyPuppy
             // (x - 15)^2 + (y - 50)^2 = 2.5^2
 
             InitializeComponent();
+            IniVar();
             createDrawingGrids();
             spawnPlayer();
             PreviewKeyDown += MainWindow_PreviewKeyDown;
+        }
+        private void IniVar()
+        {
+            Random rand = new Random();
+            int randomNumber = rand.Next(0, 66);
+            circleY = height / 2;
+            stTowerTopLeft = new Tuple<int, int>(0, (width / 100 * 90));
+            stTowerBottomRight = new Tuple<int, int>(randomNumber, width);
         }
         private void createDrawingGrids()
         {
@@ -67,15 +85,20 @@ namespace FlappyPuppy
 
                 if (element is System.Windows.Shapes.Rectangle)
                 {
+                    rectangle = (System.Windows.Shapes.Rectangle)element;
                     if ((Math.Pow((Grid.GetRow(element) - circleY), 2)) + (Math.Pow((Grid.GetColumn(element) - circleX), 2)) <= Math.Pow(r, 2))
                     {
                         currentPosition.Add(new Tuple<int, int>(Grid.GetColumn(element), Grid.GetRow(element)));
-                        rectangle = (System.Windows.Shapes.Rectangle)element;
-                        rectangle.Fill = Brushes.Black;
+                        rectangle.Fill = Brushes.MediumPurple;
+                    }
+                    else if (stTowerTopLeft.Item1 <= Grid.GetRow(element) && Grid.GetRow(element) <= stTowerBottomRight.Item1
+                        && stTowerTopLeft.Item2 <= Grid.GetColumn(element) && Grid.GetColumn(element) <= stTowerBottomRight.Item2)
+                    {
+                        rectangle.Fill = Brushes.RosyBrown;
                     }
                     else
                     {
-                        ((System.Windows.Shapes.Rectangle)element).Fill = airColor;
+                        rectangle.Fill = airColor;
                     }
                 }
             }
@@ -89,27 +112,42 @@ namespace FlappyPuppy
 
                 for (int i = 0; i < 25; ++i)
                 {
-                    --circleY;
-                    if (!((circleY - r) <= 0))
+                    changeTowerCords();
+                    if (!((circleY - r) < 0))
+                    { 
+                        --circleY;
                         spawnPlayer();
-                    await Task.Delay(15);
+                    }
+                    else
+                    {
+                        ++circleY;
+                        spawnPlayer();
+                    }
+
+                    await Task.Delay(refreshTime);
                 }
                 isJumping = false;
                 falling();
             }
         }
 
-        async void falling()
+        private async void falling()
         {
             await Task.Delay(100);
             while (!isJumping)
             {
                 ++circleY;
+                changeTowerCords();
                 spawnPlayer();
-                await Task.Delay(15);
+                await Task.Delay(refreshTime);
             }
         }
+        private void changeTowerCords()
+        {
+            stTowerTopLeft = new Tuple<int, int>(0, stTowerTopLeft.Item2 - 1);
+            stTowerBottomRight = new Tuple<int, int>(stTowerBottomRight.Item1, stTowerBottomRight.Item2 - 1);
 
+        }
 
     }
 }
