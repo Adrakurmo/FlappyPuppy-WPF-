@@ -28,14 +28,20 @@ namespace FlappyPuppy
         int height = 100;
         // ----- amout of ms before every refresh loop activation ----------- 
         int refreshTime = 15;
+        // ----- amount of *rectangles* up ---------------------------------- 
+        int jumpHeight = 20;
+        // ----- frozen time between going up and falling down -------------- 
+        int fallingDelayTime = 50;
         // ----- player Starting cor ---------------------------------------- 
         int circleY;
         int circleX = 15;
-        int r = 4;
+        int r = 2;
         List<Tuple<int, int>> currentPosition = new List<Tuple<int, int>>();
         // ----- first tower Starting cor ----------------------------------- 
         Tuple<int, int> stTowerTopLeft;
         Tuple<int, int> stTowerBottomRight;
+        Tuple<int, int> secTowerTopLeft;
+        Tuple<int, int> secTowerBottomRight;
 
 
         public MainWindow()
@@ -47,16 +53,30 @@ namespace FlappyPuppy
             InitializeComponent();
             IniVar();
             createDrawingGrids();
-            spawnPlayer();
+            drawObjects();
             PreviewKeyDown += MainWindow_PreviewKeyDown;
         }
         private void IniVar()
         {
+            GameStarted = false;
+            isJumping = false;
+            width = width < 100 ? 100 : width;
+            height = height < 100 ? 100 : height;
+            circleY = height / 2;
+            CreateNewTowerCoords();
+        }
+        private void CreateNewTowerCoords()
+        {
             Random rand = new Random();
             int randomNumber = rand.Next(0, 66);
-            circleY = height / 2;
-            stTowerTopLeft = new Tuple<int, int>(0, (width / 100 * 90));
-            stTowerBottomRight = new Tuple<int, int>(randomNumber, width);
+            int towerWidthTopLeft = (width / 100 * 90);
+
+            stTowerTopLeft = new Tuple<int, int>(0, towerWidthTopLeft);
+            stTowerBottomRight = new Tuple<int, int>(height / 100 * randomNumber, width);
+
+            int secH = 100 - (70 - randomNumber);
+            secTowerTopLeft = new Tuple<int, int>(height / 100 * secH, towerWidthTopLeft);
+            secTowerBottomRight = new Tuple<int, int>(height,width);
         }
         private void createDrawingGrids()
         {
@@ -77,11 +97,11 @@ namespace FlappyPuppy
                 }
             }
         }
-        private void spawnPlayer()
+        private void drawObjects()
         {
             foreach (UIElement element in MainGrid.Children)
             {
-                System.Windows.Shapes.Rectangle rectangle = null;
+                System.Windows.Shapes.Rectangle? rectangle = null;
 
                 if (element is System.Windows.Shapes.Rectangle)
                 {
@@ -95,6 +115,11 @@ namespace FlappyPuppy
                         && stTowerTopLeft.Item2 <= Grid.GetColumn(element) && Grid.GetColumn(element) <= stTowerBottomRight.Item2)
                     {
                         rectangle.Fill = Brushes.RosyBrown;
+                    }
+                    else if (secTowerTopLeft.Item1 <= Grid.GetRow(element) && Grid.GetRow(element) <= secTowerBottomRight.Item1
+                         && secTowerTopLeft.Item2 <= Grid.GetColumn(element) && Grid.GetColumn(element) <= secTowerBottomRight.Item2)
+                    {
+                        rectangle.Fill = Brushes.IndianRed;
                     }
                     else
                     {
@@ -110,18 +135,18 @@ namespace FlappyPuppy
                 GameStarted = true;
                 isJumping = true;
 
-                for (int i = 0; i < 25; ++i)
+                for (int i = 0; i < jumpHeight; ++i)
                 {
                     changeTowerCords();
                     if (!((circleY - r) < 0))
                     { 
                         --circleY;
-                        spawnPlayer();
+                        drawObjects();
                     }
                     else
                     {
                         ++circleY;
-                        spawnPlayer();
+                        drawObjects();
                     }
 
                     await Task.Delay(refreshTime);
@@ -133,19 +158,31 @@ namespace FlappyPuppy
 
         private async void falling()
         {
-            await Task.Delay(100);
+            if (!GameStarted) return;
+
+            await Task.Delay(fallingDelayTime);
             while (!isJumping)
             {
                 ++circleY;
                 changeTowerCords();
-                spawnPlayer();
+                drawObjects();
                 await Task.Delay(refreshTime);
+                if ((circleY) > height) 
+                {
+                    IniVar();
+                    return;
+                }
             }
         }
         private void changeTowerCords()
         {
             stTowerTopLeft = new Tuple<int, int>(0, stTowerTopLeft.Item2 - 1);
             stTowerBottomRight = new Tuple<int, int>(stTowerBottomRight.Item1, stTowerBottomRight.Item2 - 1);
+
+            secTowerTopLeft = new Tuple<int, int>(secTowerTopLeft.Item1, secTowerTopLeft.Item2 - 1);
+            secTowerBottomRight = new Tuple<int, int>(secTowerBottomRight.Item1, secTowerBottomRight.Item2 - 1);
+
+            if (stTowerBottomRight.Item2 < 0) CreateNewTowerCoords();
 
         }
 
