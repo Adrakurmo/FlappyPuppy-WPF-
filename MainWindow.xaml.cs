@@ -36,7 +36,7 @@ namespace FlappyPuppy
         int circleY;
         int circleX = 15;
         int r = 2;
-        List<Tuple<int, int>> currentPosition = new List<Tuple<int, int>>();
+        int points = 0;
         // ----- first tower Starting cor ----------------------------------- 
         Tuple<int, int> stTowerTopLeft;
         Tuple<int, int> stTowerBottomRight;
@@ -46,10 +46,6 @@ namespace FlappyPuppy
 
         public MainWindow()
         {
-            // player strat p (15,50)
-            // r = 2.5 lets say
-            // (x - 15)^2 + (y - 50)^2 = 2.5^2
-
             InitializeComponent();
             IniVar();
             createDrawingGrids();
@@ -108,18 +104,20 @@ namespace FlappyPuppy
                     rectangle = (System.Windows.Shapes.Rectangle)element;
                     if ((Math.Pow((Grid.GetRow(element) - circleY), 2)) + (Math.Pow((Grid.GetColumn(element) - circleX), 2)) <= Math.Pow(r, 2))
                     {
-                        currentPosition.Add(new Tuple<int, int>(Grid.GetColumn(element), Grid.GetRow(element)));
                         rectangle.Fill = Brushes.MediumPurple;
+                        continue;
                     }
                     else if (stTowerTopLeft.Item1 <= Grid.GetRow(element) && Grid.GetRow(element) <= stTowerBottomRight.Item1
                         && stTowerTopLeft.Item2 <= Grid.GetColumn(element) && Grid.GetColumn(element) <= stTowerBottomRight.Item2)
                     {
                         rectangle.Fill = Brushes.RosyBrown;
+                        continue;
                     }
                     else if (secTowerTopLeft.Item1 <= Grid.GetRow(element) && Grid.GetRow(element) <= secTowerBottomRight.Item1
                          && secTowerTopLeft.Item2 <= Grid.GetColumn(element) && Grid.GetColumn(element) <= secTowerBottomRight.Item2)
                     {
                         rectangle.Fill = Brushes.IndianRed;
+                        continue;
                     }
                     else
                     {
@@ -130,12 +128,15 @@ namespace FlappyPuppy
         }
         private async void MainWindow_PreviewKeyDown(object sender, KeyEventArgs e)
         {
+
             if (e.Key == Key.Space && isJumping == false)
             {
+                gameOverTextBlock.Visibility = Visibility.Hidden;
                 GameStarted = true;
                 isJumping = true;
+                int i = 0;
 
-                for (int i = 0; i < jumpHeight; ++i)
+                while (i < jumpHeight && GameStarted)
                 {
                     changeTowerCords();
                     if (!((circleY - r) < 0))
@@ -148,7 +149,7 @@ namespace FlappyPuppy
                         ++circleY;
                         drawObjects();
                     }
-
+                    ++i;
                     await Task.Delay(refreshTime);
                 }
                 isJumping = false;
@@ -161,7 +162,7 @@ namespace FlappyPuppy
             if (!GameStarted) return;
 
             await Task.Delay(fallingDelayTime);
-            while (!isJumping)
+            while (!isJumping && GameStarted)
             {
                 ++circleY;
                 changeTowerCords();
@@ -169,8 +170,7 @@ namespace FlappyPuppy
                 await Task.Delay(refreshTime);
                 if ((circleY) > height) 
                 {
-                    IniVar();
-                    return;
+                     GameOver();
                 }
             }
         }
@@ -182,8 +182,34 @@ namespace FlappyPuppy
             secTowerTopLeft = new Tuple<int, int>(secTowerTopLeft.Item1, secTowerTopLeft.Item2 - 1);
             secTowerBottomRight = new Tuple<int, int>(secTowerBottomRight.Item1, secTowerBottomRight.Item2 - 1);
 
-            if (stTowerBottomRight.Item2 < 0) CreateNewTowerCoords();
+            // T1x <= x AND T2x >= x
+            if (stTowerTopLeft.Item2 <= circleX && stTowerBottomRight.Item2 >= circleX)
+            {
+                // T1y >= y OR T2y <= y
+                if(stTowerBottomRight.Item1 >= circleY || secTowerTopLeft.Item1 <= circleY)
+                {
+                    GameOver();
+                }
+            }
 
+            if (stTowerBottomRight.Item2 < 0)
+            { 
+                CreateNewTowerCoords();
+                ++points;
+                pointsTextBlock.Text = points + "";
+            }
+
+        }
+
+        private async void GameOver()
+        {
+            points = 0;
+            gameOverTextBlock.Visibility = Visibility.Visible;
+            gameOverTextBlock.Text = "Game Over \n your score: " + pointsTextBlock.Text; ;
+            pointsTextBlock.Text = "0";
+            IniVar();
+            drawObjects();
+            await Task.Delay(1000);
         }
 
     }
