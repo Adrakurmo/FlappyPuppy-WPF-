@@ -283,6 +283,7 @@ namespace FlappyPuppy
             IniVar();
             drawObjects();
             TerrainColor = Brushes.AliceBlue;
+            refreshTime = 15;
             await Task.Delay(1000);
         }
 
