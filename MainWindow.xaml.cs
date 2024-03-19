@@ -1,4 +1,5 @@
-﻿using System.Drawing;
+﻿using System.Collections.Generic;
+using System.Drawing;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -19,8 +20,6 @@ namespace FlappyPuppy
     /// </summary>
     public partial class MainWindow : Window
     {
-        Brush airColor = Brushes.AliceBlue;
-
         bool GameStarted = false;
         bool isJumping = false;
         // ----- amount of % mini-grids [10k / 10k too many D:]--------------
@@ -31,7 +30,7 @@ namespace FlappyPuppy
         // ----- amount of *rectangles* up ---------------------------------- 
         int jumpHeight = 20;
         // ----- frozen time between going up and falling down -------------- 
-        int fallingDelayTime = 50;
+        int fallingDelayTime = 0;
         // ----- player Starting cor ---------------------------------------- 
         int circleY;
         int circleX = 15;
@@ -42,6 +41,12 @@ namespace FlappyPuppy
         Tuple<int, int> stTowerBottomRight;
         Tuple<int, int> secTowerTopLeft;
         Tuple<int, int> secTowerBottomRight;
+
+        HashSet<Tuple<int, int, int>> colors_Player_Tower_Sky;
+
+        Brush PlayersColor;
+        Brush TowersColor;
+        Brush TerrainColor = Brushes.AliceBlue;
 
 
         public MainWindow()
@@ -59,20 +64,37 @@ namespace FlappyPuppy
             width = width < 100 ? 100 : width;
             height = height < 100 ? 100 : height;
             circleY = height / 2;
+            SetNewColors();
             CreateNewTowerCoords();
+        }
+        private void SetNewColors()
+        {
+            Random rand = new Random();
+            colors_Player_Tower_Sky = new HashSet<Tuple<int, int, int>>();
+            while (colors_Player_Tower_Sky.Count < 2)
+            {
+                int c1 = rand.Next(0, 256);
+                int c2 = rand.Next(0, 256);
+                int c3 = rand.Next(0, 256);
+                colors_Player_Tower_Sky.Add(new Tuple<int, int, int>(c1, c2, c3));
+            }
+            PlayersColor = new SolidColorBrush(System.Windows.Media.Color.FromRgb((byte)colors_Player_Tower_Sky.First().Item1, (byte)colors_Player_Tower_Sky.First().Item2, (byte)colors_Player_Tower_Sky.First().Item3));
+            TowersColor = new SolidColorBrush(System.Windows.Media.Color.FromRgb((byte)colors_Player_Tower_Sky.Skip(1).First().Item1, (byte)colors_Player_Tower_Sky.Skip(1).First().Item2, (byte)colors_Player_Tower_Sky.Skip(1).First().Item3));
+            //TerrainColor = new SolidColorBrush(System.Windows.Media.Color.FromRgb((byte)colors_Player_Tower_Sky.Skip(2).First().Item1, (byte)colors_Player_Tower_Sky.Skip(2).First().Item2, (byte)colors_Player_Tower_Sky.Skip(2).First().Item3));
         }
         private void CreateNewTowerCoords()
         {
             Random rand = new Random();
             int randomNumber = rand.Next(0, 66);
             int towerWidthTopLeft = (width / 100 * 90);
+            int twtlADD = width / 10;
 
-            stTowerTopLeft = new Tuple<int, int>(0, towerWidthTopLeft);
-            stTowerBottomRight = new Tuple<int, int>(height / 100 * randomNumber, width);
+            stTowerTopLeft = new Tuple<int, int>(0, towerWidthTopLeft + twtlADD);
+            stTowerBottomRight = new Tuple<int, int>(height / 100 * randomNumber, width + twtlADD);
 
             int secH = 100 - (70 - randomNumber);
-            secTowerTopLeft = new Tuple<int, int>(height / 100 * secH, towerWidthTopLeft);
-            secTowerBottomRight = new Tuple<int, int>(height,width);
+            secTowerTopLeft = new Tuple<int, int>(height / 100 * secH, towerWidthTopLeft + twtlADD);
+            secTowerBottomRight = new Tuple<int, int>(height,width + twtlADD);
         }
         private void createDrawingGrids()
         {
@@ -88,13 +110,14 @@ namespace FlappyPuppy
                     System.Windows.Shapes.Rectangle rectangle = new System.Windows.Shapes.Rectangle();
                     Grid.SetRow(rectangle, i);
                     Grid.SetColumn(rectangle, j);
-                    rectangle.Fill = airColor;
+                    rectangle.Fill = TerrainColor;
                     MainGrid.Children.Add(rectangle);
                 }
             }
         }
         private void drawObjects()
         {
+
             foreach (UIElement element in MainGrid.Children)
             {
                 System.Windows.Shapes.Rectangle? rectangle = null;
@@ -104,24 +127,24 @@ namespace FlappyPuppy
                     rectangle = (System.Windows.Shapes.Rectangle)element;
                     if ((Math.Pow((Grid.GetRow(element) - circleY), 2)) + (Math.Pow((Grid.GetColumn(element) - circleX), 2)) <= Math.Pow(r, 2))
                     {
-                        rectangle.Fill = Brushes.MediumPurple;
+                        rectangle.Fill = PlayersColor;
                         continue;
                     }
                     else if (stTowerTopLeft.Item1 <= Grid.GetRow(element) && Grid.GetRow(element) <= stTowerBottomRight.Item1
                         && stTowerTopLeft.Item2 <= Grid.GetColumn(element) && Grid.GetColumn(element) <= stTowerBottomRight.Item2)
                     {
-                        rectangle.Fill = Brushes.RosyBrown;
+                        rectangle.Fill = TowersColor;
                         continue;
                     }
                     else if (secTowerTopLeft.Item1 <= Grid.GetRow(element) && Grid.GetRow(element) <= secTowerBottomRight.Item1
                          && secTowerTopLeft.Item2 <= Grid.GetColumn(element) && Grid.GetColumn(element) <= secTowerBottomRight.Item2)
                     {
-                        rectangle.Fill = Brushes.IndianRed;
+                        rectangle.Fill = TowersColor;
                         continue;
                     }
                     else
                     {
-                        rectangle.Fill = airColor;
+                        rectangle.Fill = TerrainColor;
                     }
                 }
             }
@@ -197,6 +220,49 @@ namespace FlappyPuppy
                 CreateNewTowerCoords();
                 ++points;
                 pointsTextBlock.Text = points + "";
+
+                switch(points)
+                {
+                    case 5:
+                        SetNewColors();
+                        --refreshTime;
+                        break;
+                    case 10:
+                        --refreshTime;
+                        SetNewColors();
+                        TerrainColor = Brushes.CadetBlue;
+                        break;
+                    case 15:
+                        SetNewColors();
+                        --refreshTime;
+                        break;
+                    case 20:
+                        SetNewColors();
+                        --refreshTime;
+                        break;
+                    case 25:
+                        SetNewColors();
+                        --refreshTime;
+                        break;
+                    case 30:
+                        SetNewColors();
+                        --refreshTime;
+                        TerrainColor = Brushes.DarkBlue;
+                        break;
+                    case 35:
+                        SetNewColors();
+                        --refreshTime;
+                        break;
+                    case 40:
+                        SetNewColors();
+                        --refreshTime;
+                        break;
+                    case 45:
+                        SetNewColors();
+                        --refreshTime;
+                        TerrainColor = Brushes.PaleVioletRed;
+                        break;
+                }
             }
 
         }
@@ -209,6 +275,7 @@ namespace FlappyPuppy
             pointsTextBlock.Text = "0";
             IniVar();
             drawObjects();
+            TerrainColor = Brushes.AliceBlue;
             await Task.Delay(1000);
         }
 
