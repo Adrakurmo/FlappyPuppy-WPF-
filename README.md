@@ -1,0 +1,1 @@
+Flappy Bird game replica created in WPF [C#] operates on an [inefficient] method of generating width * height rectangles [10k] and coloring them every frame with a slight time delay, giving the illusion of smooth movement.
