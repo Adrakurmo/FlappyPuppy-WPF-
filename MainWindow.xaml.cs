@@ -48,6 +48,8 @@ namespace FlappyPuppy
         Brush TowersColor;
         Brush TerrainColor = Brushes.AliceBlue;
 
+        int spacePre = 0;
+
 
         public MainWindow()
         {
@@ -70,17 +72,20 @@ namespace FlappyPuppy
         private void SetNewColors()
         {
             Random rand = new Random();
-            colors_Player_Tower_Sky = new HashSet<Tuple<int, int, int>>();
-            while (colors_Player_Tower_Sky.Count < 2)
+
+            colors_Player_Tower_Sky =
+            [
+                new Tuple<int, int, int>(Brushes.AliceBlue.Color.R, Brushes.AliceBlue.Color.G, Brushes.AliceBlue.Color.B),
+            ];
+            while (colors_Player_Tower_Sky.Count < 3)
             {
                 int c1 = rand.Next(0, 256);
                 int c2 = rand.Next(0, 256);
                 int c3 = rand.Next(0, 256);
                 colors_Player_Tower_Sky.Add(new Tuple<int, int, int>(c1, c2, c3));
             }
-            PlayersColor = new SolidColorBrush(System.Windows.Media.Color.FromRgb((byte)colors_Player_Tower_Sky.First().Item1, (byte)colors_Player_Tower_Sky.First().Item2, (byte)colors_Player_Tower_Sky.First().Item3));
-            TowersColor = new SolidColorBrush(System.Windows.Media.Color.FromRgb((byte)colors_Player_Tower_Sky.Skip(1).First().Item1, (byte)colors_Player_Tower_Sky.Skip(1).First().Item2, (byte)colors_Player_Tower_Sky.Skip(1).First().Item3));
-            //TerrainColor = new SolidColorBrush(System.Windows.Media.Color.FromRgb((byte)colors_Player_Tower_Sky.Skip(2).First().Item1, (byte)colors_Player_Tower_Sky.Skip(2).First().Item2, (byte)colors_Player_Tower_Sky.Skip(2).First().Item3));
+            PlayersColor = new SolidColorBrush(System.Windows.Media.Color.FromRgb((byte)colors_Player_Tower_Sky.Skip(1).First().Item1, (byte)colors_Player_Tower_Sky.Skip(1).First().Item2, (byte)colors_Player_Tower_Sky.Skip(1).First().Item3));
+            TowersColor = new SolidColorBrush(System.Windows.Media.Color.FromRgb((byte)colors_Player_Tower_Sky.Skip(2).First().Item1, (byte)colors_Player_Tower_Sky.Skip(2).First().Item2, (byte)colors_Player_Tower_Sky.Skip(2).First().Item3));
         }
         private void CreateNewTowerCoords()
         {
@@ -158,9 +163,11 @@ namespace FlappyPuppy
                 GameStarted = true;
                 isJumping = true;
                 int i = 0;
+                ++spacePre;
 
                 while (i < jumpHeight && GameStarted)
                 {
+                    if (spacePre >= 2) { break; }
                     changeTowerCords();
                     if (!((circleY - r) < 0))
                     { 
@@ -171,15 +178,16 @@ namespace FlappyPuppy
                     {
                         ++circleY;
                         drawObjects();
+                        break;
                     }
                     ++i;
                     await Task.Delay(refreshTime);
                 }
                 isJumping = false;
+                spacePre = 0;
                 falling();
             }
         }
-
         private async void falling()
         {
             if (!GameStarted) return;
@@ -266,7 +274,6 @@ namespace FlappyPuppy
             }
 
         }
-
         private async void GameOver()
         {
             points = 0;
